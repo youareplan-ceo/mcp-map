@@ -1,0 +1,7 @@
+name: daily_research
+steps:
+  - agent: stockpilot
+    task: research
+  - gate: manual_approval
+  - agent: notifier
+    task: summary_to_slack

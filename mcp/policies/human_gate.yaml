@@ -1,0 +1,5 @@
+gates:
+  - name: manual_approval
+    steps:
+      - stockpilot.signal
+      - policy.match
