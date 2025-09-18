@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+PROJ="${HOME}/Desktop/mcp-map"
+source "${PROJ}/.venv/bin/activate"
+python3 "${PROJ}/mcp/run.py" "${PROJ}/$1" 2>&1 | tee -a "${PROJ}/logs/run.log"

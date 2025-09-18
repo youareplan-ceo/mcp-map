@@ -6,3 +6,8 @@ tmp/
 __pycache__/
 .DS_Store
 data/
+data/
+logs/
+.env
+config/.env
+__pycache__/

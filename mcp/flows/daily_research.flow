@@ -1,5 +1,9 @@
 name: daily_research
 steps:
+  - tool: webfetch
+    action: fetch
+    args:
+      url: "https://example.com"
   - agent: stockpilot
     task: research
   - gate: manual_approval

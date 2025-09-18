@@ -1,15 +1,15 @@
-name: memory_demo
+name: qdrant_demo
 steps:
   - tool: webfetch
     action: fetch
     args:
       url: "https://example.com"
-  - tool: memvector
+  - tool: qvector
     action: upsert
     args:
       doc_id: "ex1"
       text: "${webfetch.snippet}"
-  - tool: memvector
+  - tool: qvector
     action: query
     args:
       text: "example domain overview"
