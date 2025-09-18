@@ -1,0 +1,25 @@
+name: signals
+tools:
+  - name: run.batch
+    args:
+      - name: source
+        type: string
+        required: false
+      - name: csv_path
+        type: string
+        required: false
+      - name: rsi_window
+        type: integer
+        required: false
+      - name: atr_window
+        type: integer
+        required: false
+      - name: ma_fast
+        type: integer
+        required: false
+      - name: ma_slow
+        type: integer
+        required: false
+      - name: limit
+        type: integer
+        required: false

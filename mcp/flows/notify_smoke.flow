@@ -1,0 +1,13 @@
+name: notify_smoke
+steps:
+  - tool: notifier
+    action: notify.summary
+    payload:
+      title: "컨트롤타워 알림 점검"
+      items:
+        - "배치 파이프라인: OK"
+        - "게이트웨이(API): OK"
+        - "대시보드(Streamlit): OK"
+      note: |
+        내일 아침 미니에서 git pull 후 재점검 예정.
+        (webhook 비어있으면 콘솔/로그만 기록)

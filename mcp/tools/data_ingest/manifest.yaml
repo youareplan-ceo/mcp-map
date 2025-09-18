@@ -1,0 +1,26 @@
+name: data_ingest
+description: Load universe tickers from CSV or published CSV URL into DuckDB
+runner: python
+entrypoint: mcp/tools/data_ingest/runner.py
+tools:
+  - name: load.csv
+    args:
+      - name: path
+        type: string
+        required: true
+  - name: load.http_csv
+    args:
+      - name: url
+        type: string
+        required: true
+  - name: preview
+    args:
+      - name: limit
+        type: integer
+        required: false
+  - name: list
+    args:
+      - name: limit
+        type: integer
+        required: false
+  - name: reset
