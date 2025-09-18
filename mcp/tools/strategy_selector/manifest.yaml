@@ -1,0 +1,29 @@
+tool:
+  id: "strategy_selector"
+  name: "Best Strategy Selector"
+  description: "백테스팅 결과 기반 최적 전략 선택"
+  actions:
+    - name: get_best_strategy
+      input_schema:
+        type: object
+        properties:
+          symbol: { type: string }
+          period: { type: string, enum: ["1d", "1w", "1m"], default: "1w" }
+      output_schema:
+        type: object
+        properties:
+          strategy_name: { type: string }
+          expected_win_rate: { type: number }
+          confidence: { type: number }
+    - name: apply_strategy
+      input_schema:
+        type: object
+        required: [symbol, strategy]
+        properties:
+          symbol: { type: string }
+          strategy: { type: string }
+      output_schema:
+        type: object
+        properties:
+          ai_score: { type: integer }
+          signal: { type: string, enum: ["BULLISH", "NEUTRAL", "BEARISH"] }

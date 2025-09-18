@@ -1,0 +1,79 @@
+name: realtime_profit_signal
+description: "백테스팅 검증된 전략으로 실시간 수익 시그널 생성"
+
+steps:
+  # 1. 종목 리스트 가져오기
+  - tool: data_ingest
+    action: list
+    args:
+      limit: 10
+
+  # 2. 각 종목별 최적 전략 선택
+  - tool: strategy_selector
+    action: get_best_strategy
+    args:
+      symbol: "{{ data_ingest.symbols[0] }}"
+      period: "1w"
+
+  # 3. 시장 데이터 조회
+  - tool: market
+    action: fetch_ohlcv
+    args:
+      ticker: "{{ data_ingest.symbols[0] }}"
+      period: "5d"
+      interval: "1h"
+
+  # 4. 기술 지표 계산
+  - tool: signals
+    action: compute_rsi
+    args:
+      close: "{{ market.close }}"
+      period: 14
+
+  # 5. 전략 적용해서 AI 스코어 생성
+  - tool: strategy_selector
+    action: apply_strategy
+    args:
+      symbol: "{{ data_ingest.symbols[0] }}"
+      strategy: "{{ strategy_selector.strategy_name }}"
+
+  # 6. 수익 극대화 엔진 적용 (규제 회피 문구 변환)
+  - agent: profit_maximizer
+    task: convert_to_safe_message
+    args:
+      ai_score: "{{ strategy_selector.ai_score }}"
+      signal: "{{ strategy_selector.signal }}"
+
+  # 7. 벡터 DB에 저장
+  - tool: memvector
+    action: upsert
+    args:
+      doc_id: "signal_{{ data_ingest.symbols[0] }}_{{ timestamp }}"
+      text: |
+        종목: {{ data_ingest.symbols[0] }}
+        AI 점수: {{ strategy_selector.ai_score }}
+        시그널: {{ profit_maximizer.safe_signal }}
+        메시지: {{ profit_maximizer.safe_message }}
+        전략: {{ strategy_selector.strategy_used }}
+        승률: {{ strategy_selector.confidence }}
+
+  # 8. 검증용 기록
+  - tool: validation_tracker
+    action: record
+    args:
+      symbol: "{{ data_ingest.symbols[0] }}"
+      ai_score: "{{ strategy_selector.ai_score }}"
+      expected_move: "{{ (strategy_selector.ai_score - 50) / 1000 }}"
+
+  # 9. 알림 전송 (고득점만)
+  - condition: "{{ strategy_selector.ai_score > 85 }}"
+    agent: notifier
+    task: send_alert
+    args:
+      message: |
+        🎯 강력 시그널 감지
+        종목: {{ data_ingest.symbols[0] }}
+        점수: {{ strategy_selector.ai_score }}/100
+        {{ profit_maximizer.safe_message }}
+        
+        ⚠️ {{ profit_maximizer.disclaimer }}
