@@ -1,19 +1,20 @@
 name: qdrant_demo
 steps:
-  - tool: webfetch
-    action: fetch
-    args:
-      url: "https://example.com"
-  - tool: qvector
+  - tool: qdrant
     action: upsert
     args:
-      doc_id: "ex1"
-      text: "${webfetch.snippet}"
-  - tool: qvector
+      collection: "test_vectors"
+      points:
+        - vector: [0.1, 0.2, 0.3]
+          payload: { doc: "테스트 문서1" }
+        - vector: [0.2, 0.1, 0.5]
+          payload: { doc: "테스트 문서2" }
+  - tool: qdrant
     action: query
     args:
-      text: "example domain overview"
-      top_k: 3
+      collection: "test_vectors"
+      vector: [0.1, 0.2, 0.25]
+      limit: 2
   - gate: manual_approval
   - agent: notifier
     task: summary_to_slack
