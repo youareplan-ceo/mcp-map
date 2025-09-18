@@ -33,10 +33,8 @@ def _read_tickers_csv(path: str) -> List[str]:
     if not p.exists():
         return []
     df = pd.read_csv(p)
-    # 첫 컬럼 이름이 ticker / symbol 뭐든 간에 첫 번째 컬럼 사용
     col = df.columns[0]
     vals = [str(x).strip() for x in df[col].tolist() if str(x).strip()]
-    # 주석/공란 제거 및 중복 제거
     vals = [v for v in vals if not v.startswith("#")]
     return list(dict.fromkeys(vals))
 
@@ -47,6 +45,9 @@ def _fetch_ohlcv(ticker: str, period="3mo", interval="1d"):
         return None
     df = df.reset_index()
     df.rename(columns=str.lower, inplace=True)
+    opens  = [_to_float(x) for x in df["open"].tolist()]
+    highs  = [_to_float(x) for x in df["high"].tolist()]
+    lows   = [_to_float(x) for x in df["low"].tolist()]
     closes = [_to_float(x) for x in df["close"].tolist()]
     vols   = [None if pd.isna(x) else int(x) for x in df["volume"].fillna(0).tolist()]
     last_close = closes[-1]
@@ -55,6 +56,9 @@ def _fetch_ohlcv(ticker: str, period="3mo", interval="1d"):
     avg_vol20 = int(sum(window)/len(window)) if window else 0
     return {
         "rows": len(df),
+        "opens": opens,
+        "highs": highs,
+        "lows": lows,
         "closes": closes,
         "vols": vols,
         "last_close": last_close,
@@ -85,17 +89,76 @@ def _sma_cross(closes: List[Optional[float]], fast=5, slow=20):
         "crossed": crossed,
     }
 
+def _rsi14(closes: List[Optional[float]], n: int = 14) -> Optional[float]:
+    vals = [x for x in closes]
+    if len([x for x in vals if x is not None]) < n+1:
+        return None
+    # Wilder 방식
+    deltas = []
+    for i in range(1, len(vals)):
+        if vals[i] is None or vals[i-1] is None:
+            deltas.append(None)
+        else:
+            deltas.append(vals[i] - vals[i-1])
+    gains = [max(d,0) if d is not None else None for d in deltas]
+    losses = [abs(min(d,0)) if d is not None else None for d in deltas]
+
+    # 초기 평균
+    g_init = [x for x in gains[:n] if x is not None]
+    l_init = [x for x in losses[:n] if x is not None]
+    if len(g_init) < n or len(l_init) < n:
+        return None
+    avg_gain = sum(g_init)/n
+    avg_loss = sum(l_init)/n
+
+    # 이후 smoothed
+    for i in range(n, len(deltas)):
+        g = gains[i] if gains[i] is not None else 0.0
+        l = losses[i] if losses[i] is not None else 0.0
+        avg_gain = (avg_gain*(n-1) + g) / n
+        avg_loss = (avg_loss*(n-1) + l) / n
+
+    if avg_loss == 0:
+        return 100.0
+    rs = avg_gain/avg_loss
+    return 100.0 - (100.0/(1.0+rs))
+
+def _atr14(highs: List[Optional[float]], lows: List[Optional[float]], closes: List[Optional[float]], n: int = 14) -> Optional[float]:
+    if not highs or not lows or not closes:
+        return None
+    if len(highs) != len(lows) or len(highs) != len(closes):
+        return None
+    if len([x for x in closes if x is not None]) < n+1:
+        return None
+    TRs: List[Optional[float]] = []
+    prev_close = None
+    for i in range(len(highs)):
+        h, l, c = highs[i], lows[i], closes[i]
+        if h is None or l is None or c is None:
+            TRs.append(None)
+        else:
+            if prev_close is None:
+                tr = h - l
+            else:
+                tr = max(h - l, abs(h - prev_close), abs(l - prev_close))
+            TRs.append(tr)
+        prev_close = c
+    # 마지막 n개가 유효해야 평균 계산
+    window = [x for x in TRs[-n:] if x is not None]
+    if len(window) < n:
+        return None
+    return sum(window)/n
+
 def run(action: str, payload: Dict[str, Any]):
     payload = payload or {}
     if action != "batch_sma":
         return {"error":"unknown action"}
 
-    # 입력: tickers 리스트 또는 csv_path 중 하나(둘 다 있으면 합침)
     tickers: List[str] = (payload.get("tickers") or [])[:]
     csv_path = payload.get("csv_path")
     if csv_path:
         tickers += _read_tickers_csv(csv_path)
-    tickers = [t for t in tickers if t]  # 정리
+    tickers = [t for t in tickers if t]
     if not tickers:
         return {"error":"no tickers"}
 
@@ -104,10 +167,14 @@ def run(action: str, payload: Dict[str, Any]):
     fast     = int(payload.get("fast", 5))
     slow     = int(payload.get("slow", 20))
 
-    # 간단 필터(옵션): 최소 종가, 최소 20일 평균 거래량
+    # 필터 (옵션)
     min_last_close  = _to_float(payload.get("min_last_close"))
     min_avg_vol20   = payload.get("min_avg_vol20")
     min_avg_vol20   = int(min_avg_vol20) if min_avg_vol20 not in (None, "",) else None
+    min_rsi         = _to_float(payload.get("min_rsi"))   # 예: 40
+    max_rsi         = _to_float(payload.get("max_rsi"))   # 예: 80
+    min_atr_pct     = _to_float(payload.get("min_atr_pct")) # 예: 0.5 (%)
+    max_atr_pct     = _to_float(payload.get("max_atr_pct")) # 예: 5.0
 
     results: List[Dict[str, Any]] = []
     for tk in tickers:
@@ -116,12 +183,29 @@ def run(action: str, payload: Dict[str, Any]):
             results.append({"ticker": tk, "error": "no_data"})
             continue
 
+        # 보조지표
+        rsi14 = _rsi14(data["closes"], 14)
+        atr14 = _atr14(data["highs"], data["lows"], data["closes"], 14)
+        atr_pct = (atr14 / data["last_close"] * 100.0) if (atr14 is not None and data["last_close"]) else None
+
         # 조건 필터링
         if min_last_close is not None and (data["last_close"] is None or data["last_close"] < min_last_close):
             results.append({"ticker": tk, "filtered": "price", "last_close": data["last_close"]})
             continue
         if (min_avg_vol20 is not None) and (data["avg_vol20"] < min_avg_vol20):
             results.append({"ticker": tk, "filtered": "volume", "avg_vol20": data["avg_vol20"], "last_close": data["last_close"]})
+            continue
+        if min_rsi is not None and (rsi14 is None or rsi14 < min_rsi):
+            results.append({"ticker": tk, "filtered": "rsi_min", "rsi14": rsi14, "last_close": data["last_close"]})
+            continue
+        if max_rsi is not None and (rsi14 is None or rsi14 > max_rsi):
+            results.append({"ticker": tk, "filtered": "rsi_max", "rsi14": rsi14, "last_close": data["last_close"]})
+            continue
+        if min_atr_pct is not None and (atr_pct is None or atr_pct < min_atr_pct):
+            results.append({"ticker": tk, "filtered": "atr_min", "atr_pct": atr_pct, "last_close": data["last_close"]})
+            continue
+        if max_atr_pct is not None and (atr_pct is None or atr_pct > max_atr_pct):
+            results.append({"ticker": tk, "filtered": "atr_max", "atr_pct": atr_pct, "last_close": data["last_close"]})
             continue
 
         sig = _sma_cross(data["closes"], fast=fast, slow=slow)
@@ -133,9 +217,17 @@ def run(action: str, payload: Dict[str, Any]):
             "avg_vol20": data["avg_vol20"],
             "fast": fast,
             "slow": slow,
+            "rsi14": rsi14,
+            "atr14": atr14,
+            "atr_pct": atr_pct,
             **sig,
         })
-    # 정렬: 골든크로스 우선, 다음 종가 내림차순
+
+    # 정렬: 골든크로스 우선 → RSI 내림차순 → 종가 내림차순
     order = {"golden_cross":0, "neutral":1, "death_cross":2}
-    results.sort(key=lambda x: (order.get(x.get("signal","neutral"), 1), -(x.get("last_close") or 0)))
+    results.sort(key=lambda x: (
+        order.get(x.get("signal","neutral"), 1),
+        -(x.get("rsi14") or 0),
+        -(x.get("last_close") or 0)
+    ))
     return {"results": results, "count": len(results)}
