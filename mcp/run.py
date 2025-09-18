@@ -1,71 +1,87 @@
-import sys, yaml
-from pathlib import Path
+import sys, json, yaml
+from jinja2 import Environment
 
-THIS_DIR = Path(__file__).resolve().parent
-ROOT_DIR = THIS_DIR.parent
-sys.path.insert(0, str(THIS_DIR))
-sys.path.insert(0, str(ROOT_DIR))
-
-from dotenv import load_dotenv
-load_dotenv(dotenv_path=ROOT_DIR / "config/.env")
-
-from mcp.agents.stockpilot.agent import run as stockpilot_run
-from mcp.agents.notifier.agent  import run as notifier_run
-from mcp.tools.webfetch.runner  import run as webfetch_run
-from mcp.tools.memvector.runner import run as memvector_run
-from mcp.tools.qvector.runner   import run as qvector_run
-from mcp.tools.browser.runner   import run as browser_run
-from mcp.tools.qdrant.runner   import run as qdrantdb_run
+# --- tool runners ---
+from mcp.tools.webfetch.runner    import run as webfetch_run
+from mcp.tools.embedder.runner    import run as embedder_run
+from mcp.tools.qdrant.runner      import run as qdrant_run
 from mcp.tools.fileparse.runner   import run as fileparse_run
-from mcp.tools.embedder.runner   import run as embedder_run
+from mcp.tools.browser.runner     import run as browser_run
+from mcp.tools.memvector.runner   import run as memvector_run
+from mcp.tools.qvector.runner     import run as qvector_run
 
-HANDLERS = {"stockpilot": stockpilot_run, "notifier": notifier_run}
-TOOLS    = {"webfetch": webfetch_run, "memvector": memvector_run, "qvector": qvector_run, "browser": browser_run, "qdrant": qdrantdb_run, "fileparse": fileparse_run, "embedder": embedder_run}
+# --- agent runners ---
+from mcp.agents.researcher.runner import run as researcher_run
+from mcp.agents.notifier.runner   import run as notifier_run
 
-def _resolve(val, context):
-    if isinstance(val, str) and val.startswith("${") and val.endswith("}"):
-        path = val[2:-1].split(".")
-        cur = context
-        for p in path:
-            if p == "prev":
-                cur = context
-            else:
-                cur = cur.get(p, {})
-        return cur if not isinstance(cur, dict) else str(cur)
+TOOLS = {
+    "webfetch":  webfetch_run,
+    "embedder":  embedder_run,
+    "qdrant":    qdrant_run,
+    "fileparse": fileparse_run,
+    "browser":   browser_run,
+    "memvector": memvector_run,
+    "qvector":   qvector_run,
+}
+
+AGENTS = {
+    "researcher": researcher_run,
+    "notifier":   notifier_run,
+}
+
+def _env():
+    env = Environment()
+    env.filters["tojson"]   = lambda v: json.dumps(v, ensure_ascii=False)
+    env.filters["truncate"] = lambda s, n=200: (s[:n]+"...") if isinstance(s, str) and len(s) > n else s
+    return env
+
+def _render(val, ctx, env):
+    if isinstance(val, str):
+        return env.from_string(val).render(**ctx)
     if isinstance(val, dict):
-        return {k: _resolve(v, context) for k,v in val.items()}
+        return {k: _render(v, ctx, env) for k, v in val.items()}
     if isinstance(val, list):
-        return [_resolve(x, context) for x in val]
+        return [_render(v, ctx, env) for v in val]
     return val
 
-def run_flow(path: str):
-    data = yaml.safe_load(Path(path).read_text())
-    context={}
-    last_result=None
-    for step in data.get("steps",[]):
-        if "agent" in step:
-            agent,task = step["agent"], step.get("task","")
-            fn = HANDLERS.get(agent)
-            if not fn:
-                raise RuntimeError(f"unknown agent: {agent}")
-            result = fn(task, last_result or context)
-            context[agent]=result
-            last_result=result
-        elif "tool" in step:
-            tool,action = step["tool"], step.get("action","")
-            raw_args = step.get("args", {})
-            args = _resolve(raw_args, context | {"prev": last_result or {}})
-            trun = TOOLS.get(tool)
-            if not trun:
-                raise RuntimeError(f"unknown tool: {tool}")
-            result = trun(action, args)
-            context[tool]=result
-            last_result=result
-        elif "gate" in step:
-            gate=step["gate"]
-            input(f"⏸  승인 게이트({gate}) — Enter를 눌러 진행 ▶ ")
-    print("✅ flow done.\ncontext=",context)
+def run_flow(flow_path: str):
+    with open(flow_path, "r", encoding="utf-8") as f:
+        flow = yaml.safe_load(f)
 
-if __name__=="__main__":
-    flow = sys.argv[1] if len(sys.argv)>1 else str(ROOT_DIR/"mcp/flows/daily_research.flow")
-    run_flow(flow)
+    ctx, env = {}, _env()
+
+    for step in flow.get("steps", []):
+        if "tool" in step:
+            name   = step["tool"]
+            action = step.get("action", "")
+            fn     = TOOLS.get(name)
+            if not fn:
+                raise RuntimeError(f"unknown tool: {name}")
+            args = _render(step.get("args", {}) or {}, ctx, env)
+            res  = fn(action, args)
+            ctx[name] = res
+
+        elif "agent" in step:
+            name = step["agent"]
+            task = step.get("task", "")
+            fn   = AGENTS.get(name)
+            if not fn:
+                raise RuntimeError(f"unknown agent: {name}")
+            args = _render(step.get("args", {}) or {}, ctx, env)
+            res  = fn(task, args)
+            ctx[name] = res
+
+        elif "gate" in step:
+            gate = step["gate"]
+            input(f"\n⏸  승인 게이트({gate}) — Enter를 눌러 진행 ▶ ")
+        else:
+            print("skip step:", step)
+
+    print("✅ flow done.")
+    return ctx
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: bin/flow <flow_path>  (또는)  python mcp/run.py <flow_path>")
+        sys.exit(1)
+    run_flow(sys.argv[1])
