@@ -2,6 +2,9 @@ import sys, json, yaml
 from jinja2 import Environment
 
 # --- tool runners ---
+from mcp.tools.portfolio.runner import run as portfolio_run
+from mcp.tools.signals.runner import run as signals_run
+from mcp.tools.market.runner import run as market_run
 from mcp.tools.webfetch.runner    import run as webfetch_run
 from mcp.tools.embedder.runner    import run as embedder_run
 from mcp.tools.qdrant.runner      import run as qdrant_run
@@ -15,6 +18,9 @@ from mcp.agents.researcher.runner import run as researcher_run
 from mcp.agents.notifier.runner   import run as notifier_run
 
 TOOLS = {
+    "portfolio": portfolio_run,
+    "signals": signals_run,
+    "market": market_run,
     "webfetch":  webfetch_run,
     "embedder":  embedder_run,
     "qdrant":    qdrant_run,
