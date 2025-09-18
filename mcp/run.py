@@ -15,9 +15,10 @@ from mcp.tools.webfetch.runner  import run as webfetch_run
 from mcp.tools.memvector.runner import run as memvector_run
 from mcp.tools.qvector.runner   import run as qvector_run
 from mcp.tools.browser.runner   import run as browser_run
+from mcp.tools.fileparse.runner   import run as fileparse_run
 
 HANDLERS = {"stockpilot": stockpilot_run, "notifier": notifier_run}
-TOOLS    = {"webfetch": webfetch_run, "memvector": memvector_run, "qvector": qvector_run, "browser": browser_run}
+TOOLS    = {"webfetch": webfetch_run, "memvector": memvector_run, "qvector": qvector_run, "browser": browser_run, "fileparse": fileparse_run}
 
 def _resolve(val, context):
     if isinstance(val, str) and val.startswith("${") and val.endswith("}"):
