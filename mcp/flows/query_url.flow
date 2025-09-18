@@ -8,7 +8,7 @@ steps:
     action: query
     args:
       collection: "mcp_docs"
-      vector: "{{ embedder.vector }}"
+      vector: "{{ embedder.vector | tojson }}"
       limit: 3
   - gate: manual_approval
   - agent: notifier

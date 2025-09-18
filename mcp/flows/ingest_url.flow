@@ -1,7 +1,7 @@
 name: ingest_url
 steps:
   - tool: webfetch
-    action: get
+    action: fetch
     args:
       url: "https://example.com"
   - tool: embedder
@@ -13,7 +13,7 @@ steps:
     args:
       collection: "mcp_docs"
       points:
-        - vector: "{{ embedder.vector }}"
+        - vector: "{{ embedder.vector | tojson }}"
           payload:
             url: "{{ webfetch.url }}"
             title: "{{ webfetch.title | default('') }}"
