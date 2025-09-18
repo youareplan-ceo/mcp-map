@@ -1,0 +1,91 @@
+name: news_integrated_signal
+description: "뉴스 감성 분석을 통합한 AI 매매 시그널"
+
+steps:
+  # 1. 종목 리스트 가져오기
+  - tool: data_ingest
+    action: list
+    args:
+      limit: 10
+
+  # 2. 각 종목 뉴스 수집
+  - loop: symbols
+    tool: news_analyzer
+    action: collect_news
+    args:
+      symbol: "{{ item }}"
+      hours: 24
+
+  # 3. 뉴스 감성 분석
+  - loop: news_articles
+    tool: news_analyzer
+    action: analyze_sentiment
+    args:
+      text: "{{ item.title }} {{ item.summary }}"
+      symbol: "{{ item.symbol }}"
+
+  # 4. 전체 시장 분위기 파악
+  - tool: news_analyzer
+    action: get_market_mood
+    args:
+      symbols: "{{ data_ingest.symbols }}"
+
+  # 5. 기술적 분석 (기존)
+  - loop: symbols
+    tool: realtime_processor
+    action: process_realtime
+    args:
+      symbol: "{{ item }}"
+      timeframe: "5m"
+
+  # 6. 뉴스 + 기술 통합 AI 점수
+  - loop: symbols
+    agent: profit_maximizer
+    task: calculate_combined_score
+    args:
+      symbol: "{{ item }}"
+      technical_score: "{{ realtime_processor.ai_score }}"
+      news_sentiment: "{{ news_analyzer.sentiment_score }}"
+      formula: "(기술점수 * 0.6) + (뉴스점수 * 0.4)"
+
+  # 7. 최종 매매 시그널 생성
+  - loop: high_score_symbols
+    tool: strategy_selector
+    action: apply_strategy
+    args:
+      symbol: "{{ item.symbol }}"
+      strategy: "NEWS_INTEGRATED"
+      combined_score: "{{ profit_maximizer.combined_score }}"
+
+  # 8. 긴급 뉴스 알림
+  - condition: "{{ news_analyzer.alerts.length > 0 }}"
+    loop: alerts
+    agent: notifier
+    task: send_news_alert
+    args:
+      type: "{{ item.type }}"
+      symbol: "{{ item.symbol }}"
+      message: |
+        📰 긴급 뉴스 알림
+        종목: {{ item.symbol }}
+        타입: {{ item.type }}
+        내용: {{ item.message }}
+        
+        현재 AI 점수: {{ combined_score }}/100
+        추천 액션: {{ strategy_recommendation }}
+
+  # 9. 데이터베이스 저장
+  - tool: memvector
+    action: upsert
+    args:
+      doc_id: "signal_news_{{ symbol }}_{{ timestamp }}"
+      text: |
+        [뉴스 통합 시그널]
+        종목: {{ symbol }}
+        시간: {{ timestamp }}
+        기술 점수: {{ technical_score }}
+        뉴스 감성: {{ news_sentiment }}
+        통합 AI 점수: {{ combined_score }}
+        시장 분위기: {{ market_mood }}
+        매매 시그널: {{ final_signal }}
+        뉴스 요약: {{ news_summary }}

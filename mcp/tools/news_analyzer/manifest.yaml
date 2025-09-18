@@ -1,0 +1,48 @@
+tool:
+  id: "news_analyzer"
+  name: "News Sentiment Analyzer"
+  description: "실시간 뉴스 수집 및 감성 분석"
+  actions:
+    - name: collect_news
+      input_schema:
+        type: object
+        properties:
+          symbol: { type: string }
+          source: { type: string, enum: ["google", "yahoo", "reddit", "all"], default: "all" }
+          hours: { type: integer, default: 24 }
+      output_schema:
+        type: object
+        properties:
+          news_count: { type: integer }
+          articles: { type: array }
+          last_updated: { type: string }
+    
+    - name: analyze_sentiment
+      input_schema:
+        type: object
+        required: [text]
+        properties:
+          text: { type: string }
+          symbol: { type: string }
+      output_schema:
+        type: object
+        properties:
+          sentiment_score: { type: number }
+          sentiment_label: { type: string, enum: ["positive", "negative", "neutral"] }
+          impact_prediction: { type: number }
+          keywords: { type: array }
+    
+    - name: get_market_mood
+      input_schema:
+        type: object
+        properties:
+          symbols: { type: array, items: { type: string } }
+      output_schema:
+        type: object
+        properties:
+          overall_sentiment: { type: number }
+          bullish_count: { type: integer }
+          bearish_count: { type: integer }
+          top_positive: { type: array }
+          top_negative: { type: array }
+          alerts: { type: array }
