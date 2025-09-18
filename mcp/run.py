@@ -20,7 +20,7 @@ from mcp.tools.fileparse.runner   import run as fileparse_run
 from mcp.tools.embedder.runner   import run as embedder_run
 
 HANDLERS = {"stockpilot": stockpilot_run, "notifier": notifier_run}
-TOOLS    = {"webfetch": webfetch_run, "memvector": memvector_run, "qvector": qvector_run, "browser": browser_run, "qdrant": qdrantdb_run, "fileparse": fileparse_run}
+TOOLS    = {"webfetch": webfetch_run, "memvector": memvector_run, "qvector": qvector_run, "browser": browser_run, "qdrant": qdrantdb_run, "fileparse": fileparse_run, "embedder": embedder_run}
 
 def _resolve(val, context):
     if isinstance(val, str) and val.startswith("${") and val.endswith("}"):
