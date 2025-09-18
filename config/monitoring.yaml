@@ -1,0 +1,76 @@
+# StockPilot 실시간 모니터링 설정
+# ================================
+
+# 모니터링 설정
+MONITORING:
+  enabled: true
+  interval_seconds: 60  # 1분마다 체크
+  market_hours_only: true
+  markets:
+    US:
+      open: "09:30"
+      close: "16:00"
+      timezone: "America/New_York"
+    KR:
+      open: "09:00"
+      close: "15:30"
+      timezone: "Asia/Seoul"
+
+# 알림 설정
+ALERTS:
+  enabled: true
+  channels:
+    - console
+    - log_file
+    # - slack  # 활성화 시 SLACK_WEBHOOK_URL 필요
+  thresholds:
+    urgent: 90    # 즉시 알림
+    high: 85      # 높은 우선순위
+    medium: 75    # 중간 우선순위
+    low: 60       # 낮은 우선순위
+
+# 시그널 설정
+SIGNALS:
+  min_confidence: 0.7  # 최소 신뢰도
+  max_age_minutes: 5    # 데이터 최대 나이
+  strategies:
+    - RSI_30_70
+    - MACD_SIGNAL
+    - BB_SQUEEZE
+    - VOLUME_BREAKOUT
+
+# 리스크 관리
+RISK:
+  max_position_size: 0.1  # 최대 포지션 10%
+  stop_loss: 0.05         # 손절 5%
+  take_profit: 0.15       # 익절 15%
+  max_daily_trades: 10    # 일일 최대 거래
+
+# 데이터 소스
+DATA:
+  primary_source: "yfinance"
+  backup_source: "alpha_vantage"
+  cache_minutes: 1
+  retry_attempts: 3
+  retry_delay_seconds: 5
+
+# 백테스팅 연동
+BACKTEST:
+  use_best_strategy: true
+  results_file: "data/backtest_results.json"
+  update_frequency: "weekly"
+
+# 성능 최적화
+PERFORMANCE:
+  batch_size: 10
+  parallel_processing: true
+  max_workers: 4
+  memory_limit_mb: 1024
+
+# 로깅
+LOGGING:
+  level: "INFO"
+  file: "logs/realtime_monitor.log"
+  max_size_mb: 100
+  backup_count: 10
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

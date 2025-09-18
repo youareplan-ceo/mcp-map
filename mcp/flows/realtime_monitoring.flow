@@ -1,0 +1,70 @@
+name: realtime_monitoring
+description: "실시간 데이터 모니터링 및 긴급 알림"
+
+steps:
+  # 1. watchlist 종목 일괄 처리
+  - tool: realtime_processor
+    action: batch_process
+    args:
+      symbols: ["AAPL", "NVDA", "TSLA", "005930.KS", "000660.KS"]
+
+  # 2. 고득점 종목 개별 분석
+  - loop: high_score_symbols
+    tool: realtime_processor
+    action: process_realtime
+    args:
+      symbol: "{{ item.symbol }}"
+      timeframe: "5m"
+
+  # 3. 이상 패턴 감지
+  - loop: high_score_symbols
+    tool: realtime_processor
+    action: detect_anomaly
+    args:
+      symbol: "{{ item.symbol }}"
+
+  # 4. 최적 전략 적용
+  - loop: high_score_symbols
+    tool: strategy_selector
+    action: apply_strategy
+    args:
+      symbol: "{{ item.symbol }}"
+      strategy: "RSI_30_70"
+
+  # 5. 수익 극대화 엔진 (안전 문구 변환)
+  - loop: high_score_symbols
+    agent: profit_maximizer
+    task: convert_score
+    args:
+      symbol: "{{ item.symbol }}"
+      ai_score: "{{ item.score }}"
+
+  # 6. 긴급 알림 (90점 이상)
+  - condition: "{{ item.score >= 90 }}"
+    loop: high_score_symbols
+    agent: notifier
+    task: urgent_alert
+    args:
+      title: "🚨 긴급 시그널"
+      message: |
+        종목: {{ item.symbol }}
+        AI 점수: {{ item.score }}/100
+        {{ profit_maximizer.safe_message }}
+        
+        ⚠️ 투자 판단은 본인 책임입니다.
+
+  # 7. 데이터베이스 저장
+  - loop: all_processed
+    tool: memvector
+    action: upsert
+    args:
+      doc_id: "realtime_{{ item.symbol }}_{{ timestamp }}"
+      text: |
+        [실시간 모니터링]
+        종목: {{ item.symbol }}
+        시간: {{ timestamp }}
+        AI 점수: {{ item.ai_score }}
+        시그널: {{ item.signal_strength }}
+        RSI: {{ item.rsi }}
+        거래량 비율: {{ item.volume_ratio }}
+        이상 패턴: {{ item.anomaly_type }}

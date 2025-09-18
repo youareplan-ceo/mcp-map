@@ -1,0 +1,48 @@
+tool:
+  id: "realtime_processor"
+  name: "Realtime Data Processor"
+  description: "실시간 수집 데이터를 분석하고 시그널 생성"
+  actions:
+    - name: process_realtime
+      input_schema:
+        type: object
+        required: [symbol]
+        properties:
+          symbol: { type: string }
+          timeframe: { type: string, enum: ["1m", "5m", "15m"], default: "5m" }
+      output_schema:
+        type: object
+        properties:
+          symbol: { type: string }
+          current_price: { type: number }
+          volume_ratio: { type: number }
+          rsi: { type: number }
+          macd_signal: { type: string }
+          ai_score: { type: integer }
+          signal_strength: { type: string }
+    
+    - name: detect_anomaly
+      input_schema:
+        type: object
+        required: [symbol]
+        properties:
+          symbol: { type: string }
+      output_schema:
+        type: object
+        properties:
+          has_anomaly: { type: boolean }
+          anomaly_type: { type: string }
+          severity: { type: string, enum: ["low", "medium", "high", "critical"] }
+          message: { type: string }
+    
+    - name: batch_process
+      input_schema:
+        type: object
+        properties:
+          symbols: { type: array, items: { type: string } }
+      output_schema:
+        type: object
+        properties:
+          processed: { type: integer }
+          high_score_symbols: { type: array }
+          alerts: { type: array }
