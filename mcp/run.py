@@ -17,6 +17,7 @@ from mcp.tools.qvector.runner   import run as qvector_run
 from mcp.tools.browser.runner   import run as browser_run
 from mcp.tools.qdrant.runner   import run as qdrantdb_run
 from mcp.tools.fileparse.runner   import run as fileparse_run
+from mcp.tools.embedder.runner   import run as embedder_run
 
 HANDLERS = {"stockpilot": stockpilot_run, "notifier": notifier_run}
 TOOLS    = {"webfetch": webfetch_run, "memvector": memvector_run, "qvector": qvector_run, "browser": browser_run, "qdrant": qdrantdb_run, "fileparse": fileparse_run}
