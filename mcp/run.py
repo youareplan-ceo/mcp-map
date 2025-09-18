@@ -6,7 +6,6 @@ ROOT_DIR = THIS_DIR.parent
 sys.path.insert(0, str(THIS_DIR))
 sys.path.insert(0, str(ROOT_DIR))
 
-# === .env 자동 로드 ===
 from dotenv import load_dotenv
 load_dotenv(dotenv_path=ROOT_DIR / "config/.env")
 
@@ -14,12 +13,13 @@ from mcp.agents.stockpilot.agent import run as stockpilot_run
 from mcp.agents.notifier.agent  import run as notifier_run
 from mcp.tools.webfetch.runner  import run as webfetch_run
 from mcp.tools.memvector.runner import run as memvector_run
+from mcp.tools.qvector.runner   import run as qvector_run
+from mcp.tools.browser.runner   import run as browser_run
 
 HANDLERS = {"stockpilot": stockpilot_run, "notifier": notifier_run}
-TOOLS    = {"webfetch": webfetch_run,    "memvector": memvector_run}
+TOOLS    = {"webfetch": webfetch_run, "memvector": memvector_run, "qvector": qvector_run, "browser": browser_run}
 
 def _resolve(val, context):
-    # "${webfetch.snippet}" 같은 경로 치환 지원
     if isinstance(val, str) and val.startswith("${") and val.endswith("}"):
         path = val[2:-1].split(".")
         cur = context
