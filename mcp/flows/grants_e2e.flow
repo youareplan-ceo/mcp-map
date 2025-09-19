@@ -1,0 +1,21 @@
+name: grants_e2e
+steps:
+  - tool: grants
+    action: ingest.catalog
+    payload: { path: "data/grants.sample.csv" }
+
+  - tool: grants
+    action: applicant.upsert
+    payload:
+      applicant_id: "APP001"
+      name: "유아플랜 컨설팅"
+      region: "KR"
+      industry: "IT"
+      has_tax_arrears: false
+
+  - tool: grants
+    action: match.run
+    payload:
+      applicant_id: "APP001"
+      desired_amount: 40000000
+      limit: 10

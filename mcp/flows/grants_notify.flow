@@ -1,0 +1,21 @@
+name: grants_notify
+steps:
+  - tool: grants
+    action: match.run
+    payload:
+      applicant_id: "APP001"
+      desired_amount: 40000000
+      limit: 10
+
+  - tool: report
+    action: grants.summary
+    payload:
+      applicant_id: "APP001"
+      limit: 10
+      title: "Grants — 매칭 결과 요약"
+
+  - tool: notifier
+    action: notify.summary
+    payload:
+      title: "Grants — 매칭 결과 요약"
+      items_from: "prev.items"

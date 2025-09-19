@@ -1,0 +1,7 @@
+tools:
+  - name: grants
+    entry: mcp/tools/grants/runner.py
+  - name: report
+    entry: mcp/tools/report/runner.py
+  - name: notifier
+    entry: mcp/tools/notifier/runner.py

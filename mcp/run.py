@@ -2,6 +2,8 @@ import sys, json, yaml
 from jinja2 import Environment
 
 # --- tool runners ---
+from mcp.tools.data_ingest.runner import run as data_ingest_run
+from mcp.tools.notifier.runner import run as notifier_run
 from mcp.tools.portfolio.runner import run as portfolio_run
 from mcp.tools.signals.runner import run as signals_run
 from mcp.tools.market.runner import run as market_run
@@ -18,6 +20,8 @@ from mcp.agents.researcher.runner import run as researcher_run
 from mcp.agents.notifier.runner   import run as notifier_run
 
 TOOLS = {
+    "data_ingest": data_ingest_run,
+    "notifier": notifier_run,
     "portfolio": portfolio_run,
     "signals": signals_run,
     "market": market_run,

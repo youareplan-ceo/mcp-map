@@ -198,28 +198,15 @@ def compute_one(t, df, rsi_w=14, atr_w=14, ma_fast=20, ma_slow=60):
     }
 
 def persist(run_id, rows):
-    import pandas as pd
     con = duckdb.connect(DB)
     try:
         con.execute(DDL)
         con.execute("INSERT OR REPLACE INTO runs(run_id, ts_epoch) VALUES (?,?)", [run_id, int(time.time())])
         if rows:
             df = pd.DataFrame(rows)
-
-            # run_id 컬럼 추가
-            df["run_id"] = run_id
-
-            # DDL 컬럼 순서와 정확히 맞추기 (10개)
-            cols = ["run_id","ticker","last_close","rsi14","atr_pct","signal","crossed","fast","slow","avg_vol20"]
-            df = df.reindex(columns=cols)
-
-            # DuckDB에 등록 후 같은 순서로 INSERT
-            con.register("df", df)
-            con.execute("""
-                INSERT INTO signals
-                SELECT run_id, ticker, last_close, rsi14, atr_pct, signal, crossed, fast, slow, avg_vol20
-                FROM df
-            """)
+            con.execute("DELETE FROM signals WHERE run_id = ?", [run_id])
+            con.execute("CREATE TABLE IF NOT EXISTS signals AS SELECT * FROM df LIMIT 0")  # ensure schema
+            con.execute("INSERT INTO signals SELECT * FROM df")
     finally:
         con.close()
 

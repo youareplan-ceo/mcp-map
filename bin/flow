@@ -1,5 +1,75 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd "$(dirname "$0")/.."
-export PYTHONPATH=.
-exec python3 mcp/run.py "$1"
+
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+source .venv/bin/activate 2>/dev/null || true
+
+python - <<'PY' "$@"
+import sys, json, subprocess, pathlib
+
+try:
+    import yaml
+except Exception:
+    sys.stderr.write("pyyaml 미설치 → pip install pyyaml 필요\n")
+    raise
+
+flow_path = sys.argv[1]
+flow = pathlib.Path(flow_path).read_text(encoding="utf-8")
+data = yaml.safe_load(flow)
+
+signals_cache = None  # 직전 signals 결과 저장
+
+def run_tool(step):
+    global signals_cache
+    tool = step["tool"]
+    action = step["action"]
+    payload = dict(step.get("payload") or {})
+
+    # signals → 캐시
+    if tool == "signals":
+        cmd = ["python","mcp/tools/signals/runner.py", action, json.dumps(payload, ensure_ascii=False)]
+        out = subprocess.check_output(cmd).decode("utf-8")
+        print(out, end="")   # 원본 출력
+        try:
+            signals_cache = json.loads(out)
+        except Exception:
+            signals_cache = None
+        return
+
+    # notifier: items_from=signals.latest → 변환
+    if tool == "notifier" and payload.get("items_from") == "signals.latest":
+        items = []
+        src = signals_cache or {}
+        rows = src.get("signals") or src.get("rows") or []
+        for r in rows:
+            t = r.get("ticker") or r.get("symbol") or "-"
+            s = r.get("signal") or r.get("sig") or "-"
+            items.append(f"{t} {s}")
+        top_n = payload.get("top_n") or 10
+        payload = dict(payload)
+        payload.pop("items_from", None)
+        payload["items"] = items[:top_n]
+        cmd = ["python","mcp/tools/notifier/runner.py","notify.summary", json.dumps(payload, ensure_ascii=False)]
+        out = subprocess.check_output(cmd).decode("utf-8")
+        print(out, end="")
+        return
+
+    # 그 외 일반 실행
+    entry = {
+        "data_ingest": "mcp/tools/data_ingest/runner.py",
+        "notifier":    "mcp/tools/notifier/runner.py",
+        "signals":     "mcp/tools/signals/runner.py",
+        "market":      "mcp/tools/market/runner.py",
+        "portfolio":   "mcp/tools/portfolio/runner.py",
+    }.get(tool)
+    if not entry:
+        raise SystemExit(f"unknown tool: {tool}")
+    cmd = ["python", entry, action, json.dumps(payload, ensure_ascii=False)]
+    out = subprocess.check_output(cmd).decode("utf-8")
+    print(out, end="")
+
+for step in data["steps"]:
+    run_tool(step)
+
+print("✅ flow done.")
+PY

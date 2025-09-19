@@ -1,0 +1,37 @@
+name: stock_e2e
+steps:
+  # 1) 유니버스 적재(이미 들어있어도 MERGE로 갱신)
+  - tool: data_ingest
+    action: load.csv
+    payload:
+      path: "data/universe.csv"
+
+  # 2) 유니버스 미리보기(로그 확인용)
+  - tool: data_ingest
+    action: preview
+    payload:
+      limit: 10
+
+  # 3) 시그널 계산 (signals 도구 사용)
+  #    csv_path가 있으면 그 CSV의 ticker만, 없으면 universe 테이블 전체를 대상
+  - tool: signals
+    action: run.batch
+    payload:
+      source: "universe"        # 또는 "csv"
+      csv_path: ""              # source가 csv일 때만 사용
+      rsi_window: 14
+      atr_window: 14
+      ma_fast: 20
+      ma_slow: 60
+      limit: 500
+
+  # 4) 최신 시그널 요약을 알림으로(상위 10개 예시)
+  - tool: notifier
+    action: notify.summary
+    payload:
+      title: "StockPilot — 최신 시그널 요약"
+      items_from: "signals.latest"   # bin/flow에서 직전 스텝 결과를 items로 변환(간단 규칙)
+      top_n: 10
+      note: |
+        * min_RSI / max_ATR 같은 API 필터는 게이트웨이에서 추가 가능
+        * SLACK_WEBHOOK_URL 없으면 콘솔/로그만 기록

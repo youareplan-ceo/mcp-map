@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+import sys, json, subprocess, yaml, pathlib, copy
+
+def eprint(*a): print(*a, file=sys.stderr)
+
+def extract_path(obj, path):
+    """path like 'items' or 'sent.title'; returns None if not found"""
+    cur = obj
+    for p in path.split('.'):
+        if isinstance(cur, dict) and p in cur:
+            cur = cur[p]
+        else:
+            return None
+    return cur
+
+def materialize_payload(payload, prev_out):
+    """Expand special refs in payload using prev_out"""
+    if not isinstance(payload, dict):
+        return payload
+    out = copy.deepcopy(payload)
+
+    # 1) short form: items_from: "prev.items" or "prev.sent.items"
+    if "items_from" in out and isinstance(out["items_from"], str):
+        if out["items_from"].startswith("prev.") and prev_out is not None:
+            path = out["items_from"][len("prev."):]
+            val = extract_path(prev_out, path)
+            if val is not None:
+                out["items"] = val
+        del out["items_from"]
+
+    # 2) generic: {"$from":"prev","path":"items"} → put under "into" or fallback to "items"
+    # Example:
+    #  payload:
+    #    into: "items"
+    #    ref: {"$from":"prev","path":"items"}
+    ref = out.get("ref")
+    if isinstance(ref, dict) and ref.get("$from") == "prev" and isinstance(ref.get("path"), str) and prev_out is not None:
+        target_key = out.get("into", "items")
+        val = extract_path(prev_out, ref["path"])
+        if val is not None:
+            out[target_key] = val
+        # cleanup helpers
+        out.pop("ref", None)
+        out.pop("into", None)
+
+    return out
+
+if len(sys.argv) < 2:
+    eprint("Usage: bin/flowx <path-to-flow>")
+    sys.exit(1)
+
+flow_path = pathlib.Path(sys.argv[1]).resolve()
+tools_map_path = pathlib.Path("mcp/tools.yaml")
+
+if not tools_map_path.exists():
+    eprint("No mcp/tools.yaml found.")
+    sys.exit(2)
+
+tools = yaml.safe_load(tools_map_path.read_text()).get("tools", [])
+name_to_entry = {t["name"]: t["entry"] for t in tools if "name" in t and "entry" in t}
+
+flow = yaml.safe_load(flow_path.read_text())
+steps = flow.get("steps", [])
+flow_name = flow.get("name", flow_path.stem)
+
+print(f"▶ Running flow: {flow_name}  (steps={len(steps)})")
+
+prev_output = None
+for i, st in enumerate(steps, 1):
+    tool = st.get("tool")
+    action = st.get("action")
+    payload = st.get("payload", {}) or {}
+
+    if tool not in name_to_entry:
+        eprint(f"❌ unknown tool: {tool}")
+        sys.exit(3)
+
+    # auto-inject previous-step outputs if requested
+    payload = materialize_payload(payload, prev_output)
+
+    entry = name_to_entry[tool]
+    cmd = ["python", entry, action, json.dumps(payload, ensure_ascii=False)]
+    print(f"\n[{i}/{len(steps)}] {tool}.{action}")
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        eprint(f"❌ step failed: {tool}.{action}")
+        eprint(proc.stderr.strip())
+        sys.exit(proc.returncode)
+
+    try:
+        out = json.loads(proc.stdout.strip() or "{}")
+    except Exception:
+        out = {"raw": proc.stdout}
+
+    prev_output = out
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+
+print(f"\n✅ flow done: {flow_name}")

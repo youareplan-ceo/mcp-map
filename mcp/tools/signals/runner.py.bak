@@ -1,0 +1,155 @@
+import sys, json, time, os
+import pandas as pd
+import numpy as np
+import duckdb
+import yfinance as yf
+from datetime import datetime, timezone
+
+DB = os.getenv("SP_DB_PATH","data/stock_signals.duckdb")
+
+DDL = """
+CREATE TABLE IF NOT EXISTS runs(
+  run_id VARCHAR PRIMARY KEY,
+  ts_epoch BIGINT
+);
+CREATE TABLE IF NOT EXISTS signals(
+  run_id  VARCHAR,
+  ticker  VARCHAR,
+  last_close DOUBLE,
+  rsi14 DOUBLE,
+  atr_pct DOUBLE,
+  signal VARCHAR,
+  crossed BOOLEAN,
+  fast DOUBLE,
+  slow DOUBLE,
+  avg_vol20 DOUBLE
+);
+"""
+
+def rsi(series, window=14):
+    delta = series.diff()
+    up = (delta.clip(lower=0)).ewm(alpha=1/window, adjust=False).mean()
+    down = (-delta.clip(upper=0)).ewm(alpha=1/window, adjust=False).mean()
+    rs = np.where(down==0, np.nan, up/down)
+    return 100 - (100/(1+rs))
+
+def atr_pct(df, window=14):
+    h, l, c = df["High"], df["Low"], df["Close"]
+    prev_c = c.shift(1)
+    tr = pd.concat([
+        (h - l).abs(),
+        (h - prev_c).abs(),
+        (l - prev_c).abs()
+    ], axis=1).max(axis=1)
+    atr = tr.ewm(alpha=1/window, adjust=False).mean()
+    return (atr / c) * 100.0
+
+def ma(series, w): return series.rolling(w, min_periods=w).mean()
+
+def infer_signal(row):
+    # 단순 룰 v1:
+    # fast > slow & RSI 45~70 → BUY
+    # fast < slow & RSI 30~55 → SELL
+    # RSI >= 70 → TAKE_PROFIT
+    # 그 외 WATCH
+    if row["rsi14"] >= 70:
+        return "TAKE_PROFIT"
+    if row["fast"] > row["slow"] and 45 <= row["rsi14"] < 70:
+        return "BUY"
+    if row["fast"] < row["slow"] and 30 <= row["rsi14"] <= 55:
+        return "SELL"
+    return "WATCH"
+
+def load_universe():
+    con = duckdb.connect(DB, read_only=True)
+    try:
+        rows = con.execute("SELECT ticker FROM universe ORDER BY ticker").fetchall()
+    finally:
+        con.close()
+    return [r[0] for r in rows]
+
+def fetch_prices(tickers, period="6mo"):
+    # yfinance는 최대 200개까지 멀티 티커 권장 → 여기선 소수라 개별 호출
+    data = {}
+    for t in tickers:
+        try:
+            df = yf.download(t, period=period, progress=False, auto_adjust=False)
+            if df is None or df.empty: 
+                continue
+            data[t] = df
+        except Exception:
+            continue
+    return data
+
+def compute_one(t, df, rsi_w=14, atr_w=14, ma_fast=20, ma_slow=60):
+    if len(df) < max(rsi_w, atr_w, ma_slow) + 2:
+        return None
+    out = pd.DataFrame(index=df.index)
+    out["Close"] = df["Close"]
+    out["High"] = df["High"]
+    out["Low"] = df["Low"]
+    out["rsi14"] = rsi(out["Close"], rsi_w)
+    out["atr_pct"] = atr_pct(out, atr_w)
+    out["fast"] = ma(out["Close"], ma_fast)
+    out["slow"] = ma(out["Close"], ma_slow)
+    out["crossed"] = (out["fast"] > out["slow"]).astype(int)
+    last = out.dropna().iloc[-1]
+    sig = infer_signal(last)
+    avg_vol20 = df["Volume"].rolling(20, min_periods=1).mean().iloc[-1] if "Volume" in df else np.nan
+    return {
+        "ticker": t,
+        "last_close": float(last["Close"]),
+        "rsi14": float(last["rsi14"]),
+        "atr_pct": float(last["atr_pct"]),
+        "signal": sig,
+        "crossed": bool(last["crossed"]),
+        "fast": float(last["fast"]),
+        "slow": float(last["slow"]),
+        "avg_vol20": float(avg_vol20) if avg_vol20==avg_vol20 else None
+    }
+
+def persist(run_id, rows):
+    con = duckdb.connect(DB)
+    try:
+        con.execute(DDL)
+        con.execute("INSERT OR REPLACE INTO runs(run_id, ts_epoch) VALUES (?,?)", [run_id, int(time.time())])
+        if rows:
+            df = pd.DataFrame(rows)
+            con.execute("DELETE FROM signals WHERE run_id = ?", [run_id])
+            con.execute("CREATE TABLE IF NOT EXISTS signals AS SELECT * FROM df LIMIT 0")  # ensure schema
+            con.execute("INSERT INTO signals SELECT * FROM df")
+    finally:
+        con.close()
+
+def run(action, payload):
+    if action != "run.batch":
+        return {"ok": False, "error": "unknown action"}
+    source = payload.get("source","universe")
+    rsi_w   = int(payload.get("rsi_window",14))
+    atr_w   = int(payload.get("atr_window",14))
+    mfast   = int(payload.get("ma_fast",20))
+    mslow   = int(payload.get("ma_slow",60))
+    limit   = int(payload.get("limit",500))
+
+    tickers = []
+    if source == "csv" and payload.get("csv_path"):
+        df = pd.read_csv(payload["csv_path"])
+        tickers = [str(t).strip() for t in df["ticker"].dropna().tolist()][:limit]
+    else:
+        tickers = load_universe()[:limit]
+
+    prices = fetch_prices(tickers)
+    rows = []
+    for t, df in prices.items():
+        rec = compute_one(t, df, rsi_w, atr_w, mfast, mslow)
+        if rec: rows.append(rec)
+
+    run_id = f"run_{int(time.time())}"
+    persist(run_id, rows)
+
+    return {"ok": True, "run_id": run_id, "signals": rows}
+
+if __name__=="__main__":
+    action = sys.argv[1]
+    payload = json.loads(sys.argv[2]) if len(sys.argv)>2 else {}
+    print(json.dumps(run(action,payload), ensure_ascii=False))
