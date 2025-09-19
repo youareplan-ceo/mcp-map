@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockPilot AI - 투자 코파일럿</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0a0e27; color: white; min-height: 100vh; }
+        .header { padding: 20px; background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .header h1 { font-size: 28px; font-weight: 600; background: linear-gradient(90deg, #00d4ff, #0099ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .portfolio-card { background: linear-gradient(135deg, rgba(0,150,255,0.1), rgba(0,200,255,0.05)); border-radius: 20px; padding: 30px; margin-bottom: 30px; }
+        .portfolio-value { font-size: 48px; font-weight: bold; margin-bottom: 15px; }
+        .positive { color: #00ff88; }
+        .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .action-card { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 25px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: all 0.3s; position: relative; }
+        .action-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,150,255,0.3); }
+        .action-card.danger { border-left: 4px solid #ff4444; }
+        .action-card.opportunity { border-left: 4px solid #00ff88; }
+        .action-title { font-size: 22px; font-weight: 600; margin: 20px 0; }
+        .detail-box { background: rgba(0,0,0,0.3); border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+        .action-button { width: 100%; padding: 15px; background: linear-gradient(90deg, #0099ff, #00d4ff); border: none; border-radius: 12px; color: white; font-size: 16px; font-weight: 600; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>StockPilot AI</h1>
+    </div>
+    <div class="container">
+        <div class="portfolio-card">
+            <div class="portfolio-value">₩ 15,234,500</div>
+            <div class="positive">▲ ₩1,234,500 (+8.82%) 오늘</div>
+        </div>
+        <div class="action-grid">
+            <div class="action-card danger">
+                <div class="action-title">⚠️ 삼성전자 매도 시그널</div>
+                <div class="detail-box">
+                    현재가: ₩68,500<br>
+                    매도 추천가: ₩68,000 이상<br>
+                    매도 비중: 30%
+                </div>
+                <button class="action-button">매도하기 →</button>
+            </div>
+            <div class="action-card opportunity">
+                <div class="action-title">🎯 네이버 매수 찬스</div>
+                <div class="detail-box">
+                    현재가: ₩165,000<br>
+                    매수 추천가: ₩164,000-165,000<br>
+                    예상 수익: +12% (3개월)
+                </div>
+                <button class="action-button">매수하기 →</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
