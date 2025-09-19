@@ -1,67 +1,124 @@
-# MCP-MAP Control Tower 🚀
+# 🚀 MCP-MAP Project
 
-> AI 기반 비즈니스 자동화 통합 플랫폼
+AI 기반 주식 자동매매 시스템 with MCP (Model Context Protocol)
 
-## 📌 프로젝트 소개
-
-MCP-MAP은 Claude, GPT 등 AI 모델과 다양한 비즈니스 도구를 통합하는 컨트롤 타워입니다.
-Model Context Protocol(MCP)을 활용하여 모든 사업을 하나의 플랫폼에서 관리합니다.
-
-## 🏗️ 아키텍처
+## 📁 프로젝트 구조
 
 ```
 mcp-map/
-├── 🧠 AI Agents (Multi-Agent System)
-├── 🔄 Flows (작업 자동화)
-├── 🛠️ Tools (MCP 서버들)
-├── 📊 Apps (StockPilot 등)
-└── 💾 Data (통합 데이터베이스)
+├── 📱 web/              # Vercel 배포용 대시보드 (UI만)
+│   ├── index.html       # 메인 대시보드
+│   └── api.js           # API 연결 모듈
+│
+├── 🧠 mcp/              # MCP 서버 (로컬 실행)
+│   ├── stockpilot/      # 주식 분석 MCP
+│   ├── linear_server/   # 프로젝트 관리 MCP
+│   └── github_server/   # GitHub 연동 MCP
+│
+├── 🤖 scripts/          # 자동화 스크립트 (로컬 실행)
+│   ├── run_stockpilot.py
+│   ├── paper_trading_analyzer.py
+│   └── performance_dashboard.py
+│
+└── 📊 docs/             # 문서
 ```
 
-## 🚀 주요 기능
+## 🌐 배포 아키텍처
 
-### 1. StockPilot (주식 분석 플랫폼)
-- AI 기반 주식 시장 분석
-- 포트폴리오 관리
-- 실시간 모니터링
-- 투자자문업 규제 준수
+```
+[Vercel Cloud] ← API 통신 → [회장님 로컬 서버]
+     ↓                              ↓
+  웹 대시보드                   MCP 서버들
+  (UI 표시만)                 (실제 작업 수행)
+```
 
-### 2. MCP 통합
-- GitHub (코드 관리)
-- Linear (프로젝트 관리)
-- Sentry (에러 추적)
-- Database (데이터 관리)
+### Vercel (클라우드)
+- **역할**: UI 표시, 시각화
+- **내용**: `web/` 폴더만 배포
+- **용량**: < 1MB (가벼움)
+- **접속**: https://mcp-map.vercel.app
 
-### 3. 자동화 Flows
-- daily_research.flow
-- web_research.flow
-- portfolio_analysis.flow
+### 로컬 서버 (회장님 컴퓨터)
+- **역할**: 실제 데이터 처리, AI 분석
+- **내용**: MCP 서버, Python 스크립트
+- **보안**: API 키, 민감 정보 안전하게 보관
 
-## 💻 설치 및 실행
+## 🚀 빠른 시작
 
-### 사전 요구사항
-- Python 3.9+
-- Node.js 18+
-- Claude Desktop (MCP 연동)
+### 1. UI 대시보드 접속
+```
+https://mcp-map.vercel.app
+```
 
-### StockPilot 실행
-
+### 2. 로컬 MCP 서버 실행
 ```bash
-# StockPilot 앱 실행
-python stockpilot_complete_app.py
+# MCP 서버 시작
+python run_stockpilot.py
 
-# 브라우저에서 접속
-# Web App: http://localhost:8000/app
-# API Docs: http://localhost:8000/docs
+# API 서버 시작 (대시보드와 연결용)
+python stockpilot_master.py --api-mode
 ```
 
-## ⚖️ 라이선스 및 법적 고지
+### 3. 연결 확인
+- 대시보드 우측 상단 "⚡ 서버 상태" 확인
+- 초록색 불 = 연결됨
+- 빨간색 불 = 연결 안됨
 
-### StockPilot 관련
-- 본 서비스는 투자 권유가 아닌 분석 도구입니다
-- 모든 투자 결정과 책임은 이용자에게 있습니다
-- 금융투자업법상 투자자문업이 아닙니다
+## 📊 주요 기능
+
+### 대시보드 (Vercel)
+- ✅ 실시간 주식 현황
+- ✅ 포트폴리오 구성 차트
+- ✅ 수익률 추이 그래프
+- ✅ AI 추천 종목 표시
+- ✅ 모바일 반응형 디자인
+
+### MCP 서버 (로컬)
+- ✅ 실시간 주식 데이터 수집
+- ✅ AI 기반 매매 신호 생성
+- ✅ 자동 매매 실행
+- ✅ 리스크 관리
+- ✅ 백테스팅
+
+## 🔧 설정
+
+### Vercel 환경변수 (필요 없음!)
+- UI만 배포하므로 API 키 불필요
+- 모든 민감 정보는 로컬에 보관
+
+### 로컬 환경변수 (.env)
+```bash
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+GEMINI_API_KEY=...
+# 기타 API 키들
+```
+
+## 📝 개발 노트
+
+### UI 수정하기
+```bash
+# web/index.html 편집
+# 자동으로 Vercel에 배포됨
+```
+
+### 새 기능 추가
+1. 로컬: Python 스크립트 추가
+2. UI: web/index.html에 표시 추가
+3. API: api.js에 연결 추가
+
+## 🎯 로드맵
+
+- [x] UI/백엔드 분리
+- [x] Vercel 배포 설정
+- [ ] WebSocket 실시간 연결
+- [ ] 모바일 앱 개발
+- [ ] AI 성능 개선
+
+## 📞 문의
+
+CEO: ceo@youareplan.co.kr
 
 ---
 
-**Made with ❤️ by Youareplan CEO**
+**Made with ❤️ by YouArePlan**
