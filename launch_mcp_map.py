@@ -59,7 +59,7 @@ class MCPMapLauncher:
     
     def start_database(self):
         """데이터베이스 시작"""
-        print("🗜️  데이터베이스 시작...")
+        print("🗄️  데이터베이스 시작...")
         
         # DuckDB는 파일 기반이라 별도 실행 불필요
         print("  ✅ DuckDB - 준비 완료")
@@ -85,17 +85,12 @@ class MCPMapLauncher:
         """API 서버들 시작"""
         print("🚀 API 서버들 시작...")
         
-        # StockPilot API
-        api_path = BASE_DIR / "apps" / "stockpilot_price_api.py"
+        # StockPilot-AI API
+        api_path = BASE_DIR / "StockPilot-ai" / "price_api.py"
         if api_path.exists():
             api_process = subprocess.Popen(["python", str(api_path)])
             self.processes.append(api_process)
-            print("  ✅ StockPilot API - http://localhost:8002")
-        else:
-            # 업로드한 파일 위치에서 실행
-            api_process = subprocess.Popen(["python", "stockpilot_price_api.py"])
-            self.processes.append(api_process)
-            print("  ✅ StockPilot API - http://localhost:8002")
+            print("  ✅ StockPilot-AI API - http://localhost:8002")
         
         print()
     
@@ -103,15 +98,17 @@ class MCPMapLauncher:
         """대시보드 시작"""
         print("📊 대시보드 시작...")
         
-        dashboard = subprocess.Popen([
-            "streamlit", "run",
-            str(BASE_DIR / "apps" / "stockpilot_dashboard.py"),
-            "--server.port", "8501",
-            "--server.headless", "true"
-        ])
-        self.processes.append(dashboard)
+        dashboard_path = BASE_DIR / "StockPilot-ai" / "dashboard.py"
+        if dashboard_path.exists():
+            dashboard = subprocess.Popen([
+                "streamlit", "run",
+                str(dashboard_path),
+                "--server.port", "8501",
+                "--server.headless", "true"
+            ])
+            self.processes.append(dashboard)
+            print("  ✅ StockPilot-AI 대시보드 - http://localhost:8501")
         
-        print("  ✅ 대시보드 - http://localhost:8501")
         print()
     
     def start_schedulers(self):
@@ -145,7 +142,7 @@ class MCPMapLauncher:
         for name, status in services.items():
             print(f"  • {name}: {status}")
         
-        print("\n📑 사용 가능한 명령:")
+        print("\n📝 사용 가능한 명령:")
         print("  • curl http://localhost:8002/api/price/AAPL")
         print("  • curl http://localhost:8002/api/analysis/AAPL") 
         print("  • curl http://localhost:8002/api/recommend")
