@@ -1,25 +1,5 @@
 {
-  "name": "mcp-map-dashboard",
-  "version": 2,
-  "buildCommand": "",
-  "outputDirectory": "web",
-  "installCommand": "",
-  "framework": null,
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "s-maxage=1, stale-while-revalidate=59"
-        }
-      ]
-    }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/web/$1" }
   ]
 }
