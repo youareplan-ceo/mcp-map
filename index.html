@@ -5,101 +5,652 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StockPilot-AI Dashboard</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body { 
             font-family: 'Segoe UI', sans-serif; 
-            margin: 0; 
-            padding: 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+        
+        /* 헤더 스타일 */
+        .header {
+            background: white;
+            padding: 15px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo h1 {
+            color: #333;
+            font-size: 24px;
+        }
+        
+        /* 설정 버튼 */
+        .settings-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background 0.3s;
+        }
+        
+        .settings-btn:hover {
+            background: #f0f0f0;
+        }
+        
+        .settings-icon {
+            width: 20px;
+            height: 20px;
+            fill: #666;
+        }
+        
+        /* 메인 컨테이너 */
+        .main-container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        
+        /* 탭 스타일 */
+        .tabs {
+            background: white;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            overflow-x: auto;
+        }
+        
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            color: #666;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .tab:hover {
+            background: #f9f9f9;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #667eea;
+        }
+        
+        /* 탭 컨텐츠 */
+        .tab-content {
+            background: white;
+            padding: 30px;
+            border-radius: 0 0 10px 10px;
+            min-height: 500px;
+        }
+        
+        /* 실시간 주가 그리드 */
+        .stocks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .stock-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .stock-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .stock-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .stock-price {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .price-up {
+            color: #e74c3c;
+        }
+        
+        .price-down {
+            color: #3498db;
+        }
+        
+        .stock-change {
+            font-size: 14px;
+        }
+        
+        /* 매수/매도 버튼 */
+        .trade-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn-buy, .btn-sell {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-buy {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-buy:hover {
+            background: #c0392b;
+        }
+        
+        .btn-sell {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-sell:hover {
+            background: #2980b9;
+        }
+        
+        /* 기록 탭 필터 */
+        .history-filters {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .filter-label {
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .filter-btn {
+            padding: 5px 15px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        /* 모달 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
             background: white;
             border-radius: 10px;
             padding: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 90%;
+            animation: slideUp 0.3s;
         }
-        h1 { 
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal-header {
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
             color: #333;
-            text-align: center;
         }
-        .status {
-            text-align: center;
-            padding: 20px;
-            background: #f0f0f0;
-            border-radius: 5px;
+        
+        .modal-body {
             margin: 20px 0;
         }
-        .api-link {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: bold;
+        
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
         }
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+        
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+        
+        /* 설정 모달 */
+        .settings-form {
+            display: flex;
+            flex-direction: column;
             gap: 20px;
-            margin: 30px 0;
         }
-        .feature {
-            padding: 20px;
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .form-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        /* 히스토리 테이블 */
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .history-table th {
             background: #f8f9fa;
-            border-radius: 8px;
-            text-align: center;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 2px solid #e0e0e0;
         }
-        .emoji {
-            font-size: 2em;
-            margin-bottom: 10px;
+        
+        .history-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .history-table tr:hover {
+            background: #fcfcfc;
+        }
+        
+        .badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .badge-simulation {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .badge-real {
+            background: #d4edda;
+            color: #155724;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🚀 StockPilot-AI</h1>
-        <h2 style="text-align: center; color: #666;">AI 기반 실시간 주식 분석 시스템</h2>
-        
-        <div class="status">
-            <p>📊 <strong>대시보드 상태:</strong> 정상 운영 중</p>
-            <p>🔗 <strong>API 엔드포인트:</strong> <a href="https://mcp-map-api.vercel.app" class="api-link">https://mcp-map-api.vercel.app</a></p>
+    <!-- 헤더 -->
+    <div class="header">
+        <div class="logo">
+            <h1>🚀 StockPilot-AI</h1>
         </div>
-
-        <div class="feature-grid">
-            <div class="feature">
-                <div class="emoji">📈</div>
-                <h3>실시간 주가</h3>
-                <p>한국/미국 주요 종목 모니터링</p>
-            </div>
-            <div class="feature">
-                <div class="emoji">🤖</div>
-                <h3>AI 분석</h3>
-                <p>기술적 지표 자동 분석</p>
-            </div>
-            <div class="feature">
-                <div class="emoji">💰</div>
-                <h3>포트폴리오</h3>
-                <p>실시간 손익 관리</p>
-            </div>
-            <div class="feature">
-                <div class="emoji">🔔</div>
-                <h3>알림 설정</h3>
-                <p>가격 변동 실시간 알림</p>
-            </div>
-        </div>
-
-        <div style="text-align: center; margin-top: 40px;">
-            <h3>📱 로컬 대시보드 실행</h3>
-            <pre style="background: #f4f4f4; padding: 15px; border-radius: 5px; text-align: left; max-width: 600px; margin: 0 auto;">
-git clone https://github.com/youareplan-ceo/mcp-map.git
-cd mcp-map/StockPilot-ai
-pip install -r requirements.txt
-python price_api.py  # API 서버
-streamlit run dashboard.py  # 대시보드</pre>
-        </div>
-
-        <footer style="text-align: center; margin-top: 50px; color: #666;">
-            <p>© 2024 StockPilot-AI. Built with ❤️ by YouArePlan CEO</p>
-        </footer>
+        <button class="settings-btn" onclick="openSettings()">
+            <svg class="settings-icon" viewBox="0 0 24 24">
+                <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.65-.07-.97l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.32-.07.64-.07.97c0 .33.03.65.07.97l-2.11 1.63c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.39 1.06.73 1.69.98l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.25 1.17-.59 1.69-.98l2.49 1c.22.08.49 0 .61-.22l2-3.46c.13-.22.07-.49-.12-.64l-2.11-1.63Z"/>
+            </svg>
+        </button>
     </div>
+    
+    <!-- 메인 컨테이너 -->
+    <div class="main-container">
+        <!-- 탭 -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('realtime')">📊 실시간</button>
+            <button class="tab" onclick="switchTab('portfolio')">💼 포트폴리오</button>
+            <button class="tab" onclick="switchTab('analysis')">📈 분석</button>
+            <button class="tab" onclick="switchTab('history')">📝 기록</button>
+            <button class="tab" onclick="switchTab('alerts')">🔔 알림</button>
+        </div>
+        
+        <!-- 탭 컨텐츠 -->
+        <div class="tab-content" id="tab-content">
+            <!-- 실시간 탭 -->
+            <div id="realtime-content">
+                <h2>실시간 주가</h2>
+                <div class="stocks-grid">
+                    <div class="stock-card">
+                        <div class="stock-name">삼성전자</div>
+                        <div class="stock-price price-up">72,300</div>
+                        <div class="stock-change price-up">▲ 1,200 (+1.69%)</div>
+                        <div class="trade-buttons">
+                            <button class="btn-buy" onclick="confirmTrade('buy', '삼성전자')">매수</button>
+                            <button class="btn-sell" onclick="confirmTrade('sell', '삼성전자')">매도</button>
+                        </div>
+                    </div>
+                    <div class="stock-card">
+                        <div class="stock-name">SK하이닉스</div>
+                        <div class="stock-price price-down">128,500</div>
+                        <div class="stock-change price-down">▼ 2,500 (-1.91%)</div>
+                        <div class="trade-buttons">
+                            <button class="btn-buy" onclick="confirmTrade('buy', 'SK하이닉스')">매수</button>
+                            <button class="btn-sell" onclick="confirmTrade('sell', 'SK하이닉스')">매도</button>
+                        </div>
+                    </div>
+                    <div class="stock-card">
+                        <div class="stock-name">NAVER</div>
+                        <div class="stock-price price-up">215,000</div>
+                        <div class="stock-change price-up">▲ 3,000 (+1.42%)</div>
+                        <div class="trade-buttons">
+                            <button class="btn-buy" onclick="confirmTrade('buy', 'NAVER')">매수</button>
+                            <button class="btn-sell" onclick="confirmTrade('sell', 'NAVER')">매도</button>
+                        </div>
+                    </div>
+                    <div class="stock-card">
+                        <div class="stock-name">카카오</div>
+                        <div class="stock-price price-down">58,200</div>
+                        <div class="stock-change price-down">▼ 800 (-1.36%)</div>
+                        <div class="trade-buttons">
+                            <button class="btn-buy" onclick="confirmTrade('buy', '카카오')">매수</button>
+                            <button class="btn-sell" onclick="confirmTrade('sell', '카카오')">매도</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 거래 확인 모달 -->
+    <div class="modal" id="tradeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="tradeModalTitle">거래 확인</h3>
+            </div>
+            <div class="modal-body">
+                <p id="tradeModalMessage">거래를 진행하시겠습니까?</p>
+                <p style="margin-top: 10px; color: #e74c3c; font-weight: 500;">
+                    ⚠️ 시뮬레이션 모드: 실제 거래가 아닌 모의 거래입니다.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeTradeModal()">취소</button>
+                <button class="btn btn-primary" onclick="executeTrade()">확인</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 설정 모달 -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">⚙️ 설정</h3>
+            </div>
+            <div class="modal-body">
+                <div class="settings-form">
+                    <div class="form-group">
+                        <label class="form-label">알림 임계치 (%)</label>
+                        <input type="number" class="form-input" placeholder="3" value="3">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">관심 종목</label>
+                        <input type="text" class="form-input" placeholder="종목명 입력">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">자동 새로고침 (초)</label>
+                        <input type="number" class="form-input" placeholder="10" value="10">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeSettingsModal()">취소</button>
+                <button class="btn btn-primary" onclick="saveSettings()">저장</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentTab = 'realtime';
+        let currentTrade = null;
+        
+        // 탭 전환
+        function switchTab(tabName) {
+            currentTab = tabName;
+            
+            // 모든 탭 비활성화
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 선택된 탭 활성화
+            event.target.classList.add('active');
+            
+            // 탭 컨텐츠 업데이트
+            updateTabContent(tabName);
+        }
+        
+        // 탭 컨텐츠 업데이트
+        function updateTabContent(tabName) {
+            const contentDiv = document.getElementById('tab-content');
+            
+            switch(tabName) {
+                case 'realtime':
+                    contentDiv.innerHTML = document.getElementById('realtime-content').innerHTML;
+                    break;
+                case 'history':
+                    contentDiv.innerHTML = `
+                        <h2>거래 기록</h2>
+                        <div class="history-filters">
+                            <div class="filter-group">
+                                <span class="filter-label">거래 유형:</span>
+                                <button class="filter-btn active" onclick="filterHistory('all')">전체</button>
+                                <button class="filter-btn" onclick="filterHistory('simulation')">시뮬레이션</button>
+                                <button class="filter-btn" onclick="filterHistory('real')">실거래</button>
+                            </div>
+                            <div class="filter-group">
+                                <span class="filter-label">기간:</span>
+                                <button class="filter-btn active">오늘</button>
+                                <button class="filter-btn">이번주</button>
+                                <button class="filter-btn">이번달</button>
+                            </div>
+                        </div>
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>시간</th>
+                                    <th>종목</th>
+                                    <th>유형</th>
+                                    <th>수량</th>
+                                    <th>가격</th>
+                                    <th>구분</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>10:30:25</td>
+                                    <td>삼성전자</td>
+                                    <td>매수</td>
+                                    <td>10주</td>
+                                    <td>72,300</td>
+                                    <td><span class="badge badge-simulation">시뮬레이션</span></td>
+                                </tr>
+                                <tr>
+                                    <td>09:15:10</td>
+                                    <td>SK하이닉스</td>
+                                    <td>매도</td>
+                                    <td>5주</td>
+                                    <td>131,000</td>
+                                    <td><span class="badge badge-simulation">시뮬레이션</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    `;
+                    break;
+                case 'portfolio':
+                    contentDiv.innerHTML = `<h2>포트폴리오</h2><p>포트폴리오 현황을 표시합니다.</p>`;
+                    break;
+                case 'analysis':
+                    contentDiv.innerHTML = `<h2>AI 분석</h2><p>기술적 분석 결과를 표시합니다.</p>`;
+                    break;
+                case 'alerts':
+                    contentDiv.innerHTML = `<h2>알림</h2><p>가격 알림을 설정하고 관리합니다.</p>`;
+                    break;
+            }
+        }
+        
+        // 거래 확인 모달
+        function confirmTrade(type, stockName) {
+            currentTrade = { type, stockName };
+            const modal = document.getElementById('tradeModal');
+            const title = document.getElementById('tradeModalTitle');
+            const message = document.getElementById('tradeModalMessage');
+            
+            title.textContent = type === 'buy' ? '매수 확인' : '매도 확인';
+            message.textContent = `${stockName} ${type === 'buy' ? '매수' : '매도'}를 진행하시겠습니까?`;
+            
+            modal.classList.add('show');
+        }
+        
+        // 거래 실행
+        function executeTrade() {
+            console.log(`[시뮬레이션] ${currentTrade.stockName} ${currentTrade.type} 실행`);
+            alert(`✅ ${currentTrade.stockName} ${currentTrade.type === 'buy' ? '매수' : '매도'} 시뮬레이션이 기록되었습니다.`);
+            closeTradeModal();
+        }
+        
+        // 거래 모달 닫기
+        function closeTradeModal() {
+            document.getElementById('tradeModal').classList.remove('show');
+            currentTrade = null;
+        }
+        
+        // 설정 모달 열기
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('show');
+        }
+        
+        // 설정 모달 닫기
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.remove('show');
+        }
+        
+        // 설정 저장
+        function saveSettings() {
+            alert('설정이 저장되었습니다.');
+            closeSettingsModal();
+        }
+        
+        // 히스토리 필터
+        function filterHistory(type) {
+            // 필터 버튼 활성화 상태 변경
+            event.target.parentNode.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            console.log(`필터링: ${type}`);
+        }
+        
+        // 모달 외부 클릭시 닫기
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('show');
+            }
+        }
+    </script>
 </body>
 </html>
