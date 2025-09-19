@@ -1,59 +1,25 @@
 {
-  "name": "mcp-map",
+  "name": "mcp-map-dashboard",
   "version": 2,
-  "builds": [
-    {
-      "src": "stockpilot_complete_app.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "15mb",
-        "runtime": "python3.11"
-      }
-    }
-  ],
+  "buildCommand": "",
+  "outputDirectory": "web",
+  "installCommand": "",
+  "framework": null,
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "stockpilot_complete_app.py"
-    }
-  ],
-  "env": {
-    "OPENAI_API_KEY": "@openai_api_key",
-    "ANTHROPIC_API_KEY": "@anthropic_api_key",
-    "GEMINI_API_KEY": "@gemini_api_key",
-    "LINEAR_API_KEY": "@linear_api_key",
-    "GITHUB_TOKEN": "@github_token",
-    "SLACK_WEBHOOK_URL": "@slack_webhook_url"
-  },
-  "buildCommand": "pip install -r requirements.lock",
-  "outputDirectory": ".",
-  "installCommand": "pip install --upgrade pip",
-  "framework": null,
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "dest": "/$1"
     }
   ],
   "headers": [
     {
-      "source": "/api/(.*)",
+      "source": "/(.*)",
       "headers": [
         {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, PUT, DELETE, OPTIONS"
+          "key": "Cache-Control",
+          "value": "s-maxage=1, stale-while-revalidate=59"
         }
       ]
     }
-  ],
-  "functions": {
-    "stockpilot_complete_app.py": {
-      "memory": 1024,
-      "maxDuration": 60
-    }
-  }
+  ]
 }
