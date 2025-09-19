@@ -1,41 +1,33 @@
-# Environment Variables
-.env
-config/.env
-.env.local
-.env.*.local
-*.env
-
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-env/
 venv/
 .venv/
+env/
 ENV/
-env.bak/
-venv.bak/
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.production
+*.env
 
 # Database
 *.db
 *.sqlite
 *.sqlite3
-stockpilot.db
+duckdb/
+postgres/
 
 # Logs
 logs/
 *.log
-tmp/
-
-# API Keys and Secrets
-*_api_key*
-*_secret*
-*password*
-*credentials*
-config/secrets.json
-config/api_keys.json
 
 # IDE
 .vscode/
@@ -44,40 +36,37 @@ config/api_keys.json
 *.swo
 *~
 
-# MacOS
+# OS
 .DS_Store
+Thumbs.db
 
-# Test Coverage
-htmlcov/
-.coverage
-.coverage.*
-coverage.xml
-*.cover
-
-# Distribution
-dist/
-build/
-*.egg-info/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# pyenv
-.python-version
-
-# Data files
-data/*.csv
-data/*.json
-data/*.duckdb
-
-# Temporary files
+# Temp
 tmp/
 temp/
-backup_untracked*
+*.tmp
 
-# Node modules
+# Backup
+backup*/
+*.bak
+
+# Credentials
+passwords.txt
+secrets.json
+credentials.json
+
+# Large files
+*.zip
+*.tar.gz
+*.rar
+
+# Node (if using)
 node_modules/
 
-# Sensitive files
-apps/stockpilot/passwords.txt
-claude_desktop_config.json
+# Test
+.pytest_cache/
+.coverage
+htmlcov/
+
+# MCP specific
+mcp/__pycache__/
+mcp/agents/__pycache__/
