@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockPilot - 평소엔 조용, 중요할 때만 알림</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F7F8FA;
+            color: #1a1a1a;
+            min-height: 100vh;
+        }
+        
+        header {
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 1rem;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #0099ff, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        .status-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 1rem 0;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .total-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin: 0.5rem 0;
+        }
+        
+        .profit {
+            font-size: 1.2rem;
+            color: #00C853;
+            margin: 0.5rem 0;
+        }
+        
+        .loss {
+            color: #FF5252;
+        }
+        
+        .status {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            margin-top: 1rem;
+        }
+        
+        .portfolio-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .stock-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .stock-item:last-child {
+            border-bottom: none;
+        }
+        
+        .stock-info h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stock-info span {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .stock-price {
+            text-align: right;
+        }
+        
+        .price-current {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .price-change {
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+        
+        .positive { color: #00C853; }
+        .negative { color: #FF5252; }
+        
+        .alert-card {
+            background: white;
+            border-left: 4px solid #FF5252;
+            border-radius: 12px;
+            padding: 1rem;
+            margin: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .alert-card.buy {
+            border-left-color: #00C853;
+        }
+        
+        .alert-card h4 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .alert-card p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .add-stock-form {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #0099ff, #00d4ff);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin: 1rem 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .tab {
+            padding: 0.75rem 1rem;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab.active {
+            color: #0099ff;
+            border-bottom-color: #0099ff;
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #999;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">StockPilot</div>
+        </div>
+    </header>
+    
+    <main class="container">
+        <!-- 상태 카드 -->
+        <div class="status-card">
+            <div class="total-value" id="totalValue">₩0</div>
+            <div class="profit" id="totalProfit">+₩0 (+0.00%)</div>
+            <div class="status" id="status">포트폴리오 안정 ✅</div>
+        </div>
+        
+        <!-- 탭 메뉴 -->
+        <div class="tabs">
+            <button class="tab active" onclick="showSection('portfolio')">포트폴리오</button>
+            <button class="tab" onclick="showSection('alerts')">알림</button>
+            <button class="tab" onclick="showSection('add')">종목 추가</button>
+        </div>
+        
+        <!-- 포트폴리오 섹션 -->
+        <div id="portfolio" class="section active">
+            <div id="portfolioList">
+                <div class="loading">포트폴리오 로딩 중...</div>
+            </div>
+        </div>
+        
+        <!-- 알림 섹션 -->
+        <div id="alerts" class="section">
+            <div id="alertsList">
+                <div class="empty-state">
+                    <p>🔔</p>
+                    <p>새로운 알림이 없습니다</p>
+                    <p style="font-size: 0.9rem; margin-top: 0.5rem;">중요한 순간에만 알려드립니다</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 종목 추가 섹션 -->
+        <div id="add" class="section">
+            <div class="add-stock-form">
+                <h3>포트폴리오에 종목 추가</h3>
+                <form id="addStockForm">
+                    <div class="form-group">
+                        <label>종목 코드</label>
+                        <input type="text" id="ticker" placeholder="예: AAPL, 005930" required>
+                    </div>
+                    <div class="form-group">
+                        <label>시장</label>
+                        <select id="market">
+                            <option value="US">미국</option>
+                            <option value="KR">한국</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>수량</label>
+                        <input type="number" id="quantity" placeholder="10" required>
+                    </div>
+                    <div class="form-group">
+                        <label>평균 매입가</label>
+                        <input type="number" id="avgPrice" placeholder="150.00" step="0.01" required>
+                    </div>
+                    <button type="submit" class="btn">종목 추가</button>
+                </form>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        // API 주소 (로컬 테스트용)
+        const API_URL = 'http://localhost:8000';
+        let userId = 1; // 테스트용 사용자 ID
+        
+        // 탭 전환
+        function showSection(sectionName) {
+            // 모든 섹션 숨기기
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // 모든 탭 비활성화
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 선택한 섹션 표시
+            document.getElementById(sectionName).classList.add('active');
+            event.target.classList.add('active');
+            
+            // 데이터 새로고침
+            if (sectionName === 'portfolio') {
+                loadPortfolio();
+            } else if (sectionName === 'alerts') {
+                loadAlerts();
+            }
+        }
+        
+        // 포트폴리오 로드
+        async function loadPortfolio() {
+            try {
+                const response = await fetch(`${API_URL}/portfolio/${userId}`);
+                const data = await response.json();
+                
+                // 총 가치 업데이트
+                document.getElementById('totalValue').textContent = 
+                    `₩${(data.summary.total_value * 1300).toLocaleString()}`; // 환율 가정
+                
+                const profitClass = data.summary.total_profit >= 0 ? 'profit' : 'profit loss';
+                document.getElementById('totalProfit').className = profitClass;
+                document.getElementById('totalProfit').textContent = 
+                    `${data.summary.total_profit >= 0 ? '+' : ''}₩${(data.summary.total_profit * 1300).toLocaleString()} (${data.summary.total_profit_rate.toFixed(2)}%)`;
+                
+                document.getElementById('status').textContent = data.summary.status;
+                
+                // 포트폴리오 목록
+                const portfolioHtml = data.portfolios.map(stock => `
+                    <div class="stock-item">
+                        <div class="stock-info">
+                            <h3>${stock.ticker}</h3>
+                            <span>${stock.quantity}주 | ${stock.market === 'KR' ? '한국' : '미국'}</span>
+                        </div>
+                        <div class="stock-price">
+                            <div class="price-current">
+                                ${stock.market === 'KR' ? '₩' : '$'}${stock.current_price.toLocaleString()}
+                            </div>
+                            <div class="price-change ${stock.profit_rate >= 0 ? 'positive' : 'negative'}">
+                                ${stock.profit_rate >= 0 ? '+' : ''}${stock.profit_rate.toFixed(2)}%
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.getElementById('portfolioList').innerHTML = 
+                    `<div class="portfolio-card">${portfolioHtml}</div>`;
+                
+            } catch (error) {
+                console.error('포트폴리오 로드 실패:', error);
+                document.getElementById('portfolioList').innerHTML = 
+                    '<div class="empty-state">포트폴리오를 불러올 수 없습니다</div>';
+            }
+        }
+        
+        // 알림 로드
+        async function loadAlerts() {
+            try {
+                const response = await fetch(`${API_URL}/alerts/${userId}`);
+                const data = await response.json();
+                
+                if (data.alerts && data.alerts.length > 0) {
+                    const alertsHtml = data.alerts.map(alert => {
+                        const alertClass = alert.alert_type === 'BUY' ? 'buy' : '';
+                        return `
+                            <div class="alert-card ${alertClass}">
+                                <h4>${alert.ticker}</h4>
+                                <p>${alert.message}</p>
+                                <small>${new Date(alert.created_at).toLocaleString()}</small>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    document.getElementById('alertsList').innerHTML = alertsHtml;
+                } else {
+                    document.getElementById('alertsList').innerHTML = `
+                        <div class="empty-state">
+                            <p style="font-size: 3rem;">✅</p>
+                            <p>${data.message || '포트폴리오 안정'}</p>
+                            <p style="font-size: 0.9rem; margin-top: 0.5rem; color: #999;">
+                                ${data.description || '특별한 신호가 없습니다'}
+                            </p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('알림 로드 실패:', error);
+            }
+        }
+        
+        // 종목 추가
+        document.getElementById('addStockForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const stockData = {
+                user_id: userId,
+                ticker: document.getElementById('ticker').value.toUpperCase(),
+                market: document.getElementById('market').value,
+                quantity: parseFloat(document.getElementById('quantity').value),
+                avg_price: parseFloat(document.getElementById('avgPrice').value)
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/portfolio/add`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(stockData)
+                });
+                
+                if (response.ok) {
+                    alert('종목이 추가되었습니다!');
+                    document.getElementById('addStockForm').reset();
+                    showSection('portfolio');
+                } else {
+                    alert('종목 추가 실패');
+                }
+            } catch (error) {
+                console.error('종목 추가 오류:', error);
+                alert('서버 연결 실패');
+            }
+        });
+        
+        // 페이지 로드 시 포트폴리오 표시
+        window.addEventListener('load', () => {
+            loadPortfolio();
+            
+            // 5분마다 자동 새로고침
+            setInterval(() => {
+                if (document.getElementById('portfolio').classList.contains('active')) {
+                    loadPortfolio();
+                } else if (document.getElementById('alerts').classList.contains('active')) {
+                    loadAlerts();
+                }
+            }, 300000); // 5분
+        });
+    </script>
+</body>
+</html>
