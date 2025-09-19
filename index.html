@@ -2,14 +2,104 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=/stockpilot/">
-    <title>StockPilot AI - Redirecting...</title>
-    <script>
-        // 즉시 리다이렉트
-        window.location.href = "/stockpilot/";
-    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockPilot-AI Dashboard</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            margin: 0; 
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        h1 { 
+            color: #333;
+            text-align: center;
+        }
+        .status {
+            text-align: center;
+            padding: 20px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .api-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .feature {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .emoji {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+    </style>
 </head>
 <body>
-    <p>StockPilot AI로 이동 중...</p>
+    <div class="container">
+        <h1>🚀 StockPilot-AI</h1>
+        <h2 style="text-align: center; color: #666;">AI 기반 실시간 주식 분석 시스템</h2>
+        
+        <div class="status">
+            <p>📊 <strong>대시보드 상태:</strong> 정상 운영 중</p>
+            <p>🔗 <strong>API 엔드포인트:</strong> <a href="https://mcp-map-api.vercel.app" class="api-link">https://mcp-map-api.vercel.app</a></p>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature">
+                <div class="emoji">📈</div>
+                <h3>실시간 주가</h3>
+                <p>한국/미국 주요 종목 모니터링</p>
+            </div>
+            <div class="feature">
+                <div class="emoji">🤖</div>
+                <h3>AI 분석</h3>
+                <p>기술적 지표 자동 분석</p>
+            </div>
+            <div class="feature">
+                <div class="emoji">💰</div>
+                <h3>포트폴리오</h3>
+                <p>실시간 손익 관리</p>
+            </div>
+            <div class="feature">
+                <div class="emoji">🔔</div>
+                <h3>알림 설정</h3>
+                <p>가격 변동 실시간 알림</p>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px;">
+            <h3>📱 로컬 대시보드 실행</h3>
+            <pre style="background: #f4f4f4; padding: 15px; border-radius: 5px; text-align: left; max-width: 600px; margin: 0 auto;">
+git clone https://github.com/youareplan-ceo/mcp-map.git
+cd mcp-map/StockPilot-ai
+pip install -r requirements.txt
+python price_api.py  # API 서버
+streamlit run dashboard.py  # 대시보드</pre>
+        </div>
+
+        <footer style="text-align: center; margin-top: 50px; color: #666;">
+            <p>© 2024 StockPilot-AI. Built with ❤️ by YouArePlan CEO</p>
+        </footer>
+    </div>
 </body>
 </html>
